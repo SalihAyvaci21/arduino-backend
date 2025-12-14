@@ -1,4 +1,4 @@
-# Node.js tabanlı bir Linux imajı kullan [cite: 55]
+# Node.js tabanlı bir Linux imajı kullan
 FROM node:18-bullseye
 
 # Gerekli sistem araçlarını yükle
@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Arduino CLI Kurulumu
-RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh [cite: 55, 56]
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
 
 # Arduino AVR Çekirdeğini İndir (Uno için gerekli)
 RUN arduino-cli core update-index
