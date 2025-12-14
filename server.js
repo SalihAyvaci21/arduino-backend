@@ -9,13 +9,15 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors()); // CORS etkin
 app.use(bodyParser.json());
 
 // Geçici dosya yolu ve klasörü
 const SKETCH_DIR = path.join(__dirname, 'sketch_temp');
 const SKETCH_FILE = path.join(SKETCH_DIR, 'sketch_temp.ino');
-const HEX_PATH = path.join(SKETCH_DIR, 'sketch_temp.ino.hex'); // Arduino CLI varsayılan isim verir
+// Arduino CLI, FQBN'yi (arduino.avr.uno) yola ekleyerek hex dosyasını oluşturur.
+const HEX_PATH = path.join(SKETCH_DIR, 'sketch_temp.ino.hex'); 
+
 
 // Derleme Endpoint'i
 app.post('/compile', async (req, res) => {
@@ -30,7 +32,6 @@ app.post('/compile', async (req, res) => {
         console.log("Kod alındı ve derleme başlatılıyor...");
 
         // 1. Sketch dizinini oluştur/temizle
-        // Önceki derlemelerden kalan dosyaları siler
         await fs.rm(SKETCH_DIR, { recursive: true, force: true });
         await fs.mkdir(SKETCH_DIR, { recursive: true });
         
@@ -38,8 +39,7 @@ app.post('/compile', async (req, res) => {
         await fs.writeFile(SKETCH_FILE, code);
 
         // 3. Arduino CLI ile derle
-        // --output-dir parametresini SKETCH_DIR olarak ayarladık.
-        // Bu, hex dosyasının HEX_PATH'te oluşmasını sağlar.
+        // --output-dir parametresi, hex dosyasının nereye yazılacağını belirtir.
         const compileCommand = `arduino-cli compile --fqbn ${board} "${SKETCH_DIR}" --output-dir "${SKETCH_DIR}"`;
         
         await new Promise((resolve, reject) => {
@@ -54,21 +54,16 @@ app.post('/compile', async (req, res) => {
         });
 
         // 4. Derlenen .hex dosyasını oku
+        // Not: Hex dosyası adı, CLI'ın iç mantığına bağlıdır.
         const hexContent = await fs.readFile(HEX_PATH, 'utf8');
 
         // 5. Başarılı yanıt gönder
         res.json({ hex: hexContent });
 
     } catch (err) {
-        // Hata türüne göre farklı yanıtlar gönderme
         if (err.type === 'CompilationFailed') {
-             // 500 hatası ve derleme çıktısı
              return res.status(500).send({ error: 'Compilation failed', details: err.details });
-        } else if (err.code === 'ENOENT') {
-             // Hex dosyası bulunamadı (Bu da bir derleme hatasıdır aslında)
-             return res.status(500).send({ error: 'Hex file not found after compilation.', details: err.message });
         } else {
-             // Genel Sunucu Hatası
              console.error('Sunucu İç Hatası:', err);
              return res.status(500).send({ error: 'Internal server error', details: err.message });
         }
@@ -78,4 +73,8 @@ app.post('/compile', async (req, res) => {
 // Sunucuyu başlat
 app.listen(port, () => {
     console.log(`Arduino CLI Compilation Server listening on port ${port}`);
+});
+
+app.get('/', (req, res) => {
+    res.send('Arduino CLI Derleme Sunucusu aktif. Derleme için POST /compile adresini kullanın.');
 });
