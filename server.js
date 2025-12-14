@@ -12,7 +12,6 @@ app.use(bodyParser.json());
 const SKETCH_DIR = path.join(__dirname, 'sketch_temp');
 const SKETCH_FILE = path.join(SKETCH_DIR, 'sketch_temp.ino');
 
-// Dizin yoksa oluşturma işlemi, orijinal kodunuzdaki gibi senkron olarak bırakıldı.
 if (!fs.existsSync(SKETCH_DIR)){
     fs.mkdirSync(SKETCH_DIR);
 }
@@ -22,7 +21,6 @@ app.post('/compile', (req, res) => {
     const board = "arduino:avr:uno"; 
 
     console.log("Kod alındı...");
-    // Senkron dosya yazma (Blocking)
     fs.writeFileSync(SKETCH_FILE, code);
 
     // Arduino-CLI komutu
@@ -35,7 +33,6 @@ app.post('/compile', (req, res) => {
         }
 
         const hexPath = path.join(SKETCH_DIR, 'sketch_temp.ino.hex');
-        // Senkron dosya okuma (Blocking)
         if (fs.existsSync(hexPath)) {
             const hexContent = fs.readFileSync(hexPath, 'utf8');
             res.json({ hex: hexContent });
