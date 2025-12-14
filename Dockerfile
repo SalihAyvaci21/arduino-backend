@@ -1,43 +1,31 @@
-# 1. Aşama: Gerekli araçları kurmak ve CLI'ı yapılandırmak için temel imaj
-FROM node:18-slim as builder
+# Node.js tabanlı bir Linux imajı kullan [cite: 55]
+FROM node:18-bullseye
 
-# Gerekli bağımlılıkları yükle
-RUN apt-get update && \
-    apt-get install -y wget curl unzip libstdc++6 && \
-    rm -rf /var/lib/apt/lists/*
+# Gerekli sistem araçlarını yükle
+RUN apt-get update && apt-get install -y \
+    curl \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Arduino CLI'ı indir ve kur
-ARG ARDUINO_CLI_VERSION="0.35.2"
-ENV ARDUINO_CLI_URL="https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz"
+# Arduino CLI Kurulumu
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh [cite: 55, 56]
 
-RUN wget ${ARDUINO_CLI_URL} -O /tmp/arduino-cli.tar.gz && \
-    tar -xf /tmp/arduino-cli.tar.gz -C /usr/bin/ && \
-    rm /tmp/arduino-cli.tar.gz
+# Arduino AVR Çekirdeğini İndir (Uno için gerekli)
+RUN arduino-cli core update-index
+RUN arduino-cli core install arduino:avr
 
-# CLI Konfigürasyonu için sabit bir dizin belirle (Çekirdekleri buraya kurarız)
-ENV ARDUINO_USER_DIR=/usr/share/.arduino15 
-RUN mkdir -p ${ARDUINO_USER_DIR}
-RUN arduino-cli config init --config-file ${ARDUINO_USER_DIR}/arduino-cli.yaml
+# Çalışma klasörünü ayarla
+WORKDIR /app
 
-# AVR Çekirdeğini Kurma
-RUN arduino-cli core update-index --config-file ${ARDUINO_USER_DIR}/arduino-cli.yaml
-RUN arduino-cli core install arduino:avr --config-file ${ARDUINO_USER_DIR}/arduino-cli.yaml
-
-# 2. Aşama: Uygulama kodunu ekle ve Node.js sunucusunu çalıştır
-FROM node:18-slim
-
-# Önceki aşamadan CLI ve core dosyalarını KESİN YOLDAN kopyala
-ENV ARDUINO_USER_DIR=/usr/share/.arduino15
-COPY --from=builder /usr/bin/arduino-cli /usr/bin/arduino-cli
-COPY --from=builder ${ARDUINO_USER_DIR} ${ARDUINO_USER_DIR} 
-
-# Uygulama kodunu kopyala ve başlat
-WORKDIR /usr/src/app
-COPY package.json .
+# Paket listesini kopyala ve yükle
+COPY package.json ./
 RUN npm install
-COPY server.js .
 
-ENV PORT 3000
-EXPOSE 3000
+# Sunucu dosyasını kopyala
+COPY server.js ./
 
+# Geçici derleme klasörü oluştur
+RUN mkdir sketch_temp
+
+# Sunucuyu başlat
 CMD ["node", "server.js"]
