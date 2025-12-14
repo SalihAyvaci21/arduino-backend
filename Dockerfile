@@ -14,7 +14,7 @@ RUN wget ${ARDUINO_CLI_URL} -O /tmp/arduino-cli.tar.gz && \
     tar -xf /tmp/arduino-cli.tar.gz -C /usr/bin/ && \
     rm /tmp/arduino-cli.tar.gz
 
-# CLI Konfigürasyonu için sabit bir dizin belirle
+# CLI Konfigürasyonu için sabit bir dizin belirle (Çekirdekleri buraya kurarız)
 ENV ARDUINO_USER_DIR=/usr/share/.arduino15 
 RUN mkdir -p ${ARDUINO_USER_DIR}
 RUN arduino-cli config init --config-file ${ARDUINO_USER_DIR}/arduino-cli.yaml
